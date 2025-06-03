@@ -2,9 +2,13 @@ locals {
   domain_prefix = "${var.project_name}-${var.environment}"
 }
 
-variable "project_name" {
-  
+# Random string for unique domain naming
+resource "random_string" "domain_suffix" {
+  length  = 8
+  special = false
+  upper   = false
 }
+
 # Cognito User Pool
 resource "aws_cognito_user_pool" "main" {
   name = "${var.project_name}-${var.environment}"
@@ -126,7 +130,7 @@ resource "aws_cognito_user_pool_client" "main" {
 
 # Cognito User Pool Domain
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = local.domain_prefix
+  domain       = "${local.domain_prefix}-${random_string.domain_suffix.result}"
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
@@ -144,11 +148,11 @@ resource "aws_cognito_identity_provider" "google" {
   }
 
   attribute_mapping = {
-    email    = "email"
-    username = "sub"
-    given_name = "given_name"
+    email       = "email"
+    username    = "sub"
+    given_name  = "given_name"
     family_name = "family_name"
-    picture = "picture"
+    picture     = "picture"
   }
 }
 
@@ -167,11 +171,11 @@ resource "aws_cognito_identity_provider" "facebook" {
   }
 
   attribute_mapping = {
-    email    = "email"
-    username = "id"
-    given_name = "first_name"
+    email       = "email"
+    username    = "id"
+    given_name  = "first_name"
     family_name = "last_name"
-    picture = "picture"
+    picture     = "picture"
   }
 }
 
@@ -189,8 +193,8 @@ resource "aws_cognito_identity_provider" "amazon" {
   }
 
   attribute_mapping = {
-    email    = "email"
-    username = "user_id"
+    email      = "email"
+    username   = "user_id"
     given_name = "name"
   }
 }
@@ -211,9 +215,9 @@ resource "aws_cognito_identity_provider" "apple" {
   }
 
   attribute_mapping = {
-    email    = "email"
-    username = "sub"
-    given_name = "firstName"
+    email       = "email"
+    username    = "sub"
+    given_name  = "firstName"
     family_name = "lastName"
   }
 }
@@ -227,38 +231,6 @@ resource "aws_cognito_identity_pool" "main" {
     client_id               = aws_cognito_user_pool_client.main.id
     provider_name          = aws_cognito_user_pool.main.endpoint
     server_side_token_check = false
-  }
-
-  dynamic "cognito_identity_providers" {
-    for_each = var.enable_google_idp ? [1] : []
-    content {
-      client_id     = var.google_client_id
-      provider_name = "cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main.id}:Google"
-    }
-  }
-
-  dynamic "cognito_identity_providers" {
-    for_each = var.enable_facebook_idp ? [1] : []
-    content {
-      client_id     = var.facebook_client_id
-      provider_name = "cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main.id}:Facebook"
-    }
-  }
-
-  dynamic "cognito_identity_providers" {
-    for_each = var.enable_amazon_idp ? [1] : []
-    content {
-      client_id     = var.amazon_client_id
-      provider_name = "cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main.id}:LoginWithAmazon"
-    }
-  }
-
-  dynamic "cognito_identity_providers" {
-    for_each = var.enable_apple_idp ? [1] : []
-    content {
-      client_id     = var.apple_client_id
-      provider_name = "cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main.id}:SignInWithApple"
-    }
   }
 }
 
